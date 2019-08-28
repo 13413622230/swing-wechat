@@ -1,0 +1,188 @@
+			//检测文件夹是不是有重复名字的文件
+	public boolean isRepeatFlie(String path,String name){
+		File file = new File(path);
+		File[] tempFile = file.listFiles();
+		for(File f:tempFile){
+			if(name.equals(f.getPath().substring(f.getPath().lastIndexOf("\\")+1))){
+				return true;
+			}
+		}
+		return false;
+	}
+
+//检测聊天文件的长度
+	public static int fileSize(String path){
+		File f = new File(path);
+		System.out.println(f);
+		FileInputStream in;
+		ObjectInputStream objIn;
+		ArrayList<Message> ms = new ArrayList<>();
+		try {
+			in = new FileInputStream(f);
+			objIn = new ObjectInputStream(in);
+			ms = (ArrayList<Message>) objIn.readObject();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return ms.size();
+	}
+
+
+//获取文件中的聊天记录链表
+	public static ArrayList<Message> getFileMessages(String path){
+		File f = new File(path);
+		System.out.println(f);
+		FileInputStream in;
+		ObjectInputStream objIn;
+		ArrayList<Message> ms = new ArrayList<>();
+		try {
+			in = new FileInputStream(f);
+			objIn = new ObjectInputStream(in);
+			ms = (ArrayList<Message>) objIn.readObject();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (ClassNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return ms;
+	}
+
+
+//检测temp文件是不是有文件
+	public void getTempFile(String user_id) throws IOException, ClassNotFoundException{
+		String path = "D:\\wechat\\"+user_id+"\\temp";
+		File f = new File(path);
+		File[] fs = f.listFiles();
+		ArrayList<File> temp = new ArrayList<>();
+		FileInputStream in = null;
+		ObjectInputStream obin = null;
+		for(File file:fs){
+			if(file.isFile()){
+				temp.add(file);
+			}
+		}
+		if(temp.size()!=0){
+			for(File file1:temp){
+				in = new FileInputStream(file1);
+				obin = new ObjectInputStream(in);
+				ArrayList<Message> ms = (ArrayList<Message>) obin.readObject();
+				for(Message m:ms){
+					if(m.getType()==text){
+						oos.writeInt(acceptText);
+						oos.flush();
+						oos.writeObject(m);
+						oos.flush();
+					}
+					else if(m.getType()==VoiceMe){
+						VoiceMessage vm = (VoiceMessage) m;
+						sendVoidMessage(vm, "");
+					}
+					else if(m.getType()==Picture){
+						oos.writeInt(accpetImg);
+						oos.flush();
+						oos.writeObject(m);
+						oos.flush();
+					}
+					else if(m.getType()==file){
+						FileMessage fm = (FileMessage) m;
+						sendFile(fm, fm.getContent());
+					}
+					saveMessage(user_id, "message", m);
+				}
+				file1.delete();
+			}
+		}
+	}
+
+
+	//保存聊天记录到本地文件  参数p是保存到的文件名字 temp或者message
+	public boolean saveMessage(String user_id,String p,Message message) throws IOException{
+		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd-HH-mm-ss");		//聊天文件命名
+		String path = "D:/wechat/"+user_id+"/"+p;
+		File f = new File(path);
+		String contentPath = path+"/"+df.format(new Date())+".txt";
+		f.mkdirs();
+		File[] tempList = f.listFiles();
+		ArrayList<File> list = new ArrayList<>();
+		if(tempList.length==0){
+			File content = new File(contentPath);
+			content.createNewFile();
+			FileOutputStream out = new FileOutputStream(content);
+			ObjectOutputStream objOut = new ObjectOutputStream(out);
+			ArrayList<Message> ms = new ArrayList<>();
+			if(message.getType()==VoiceMe){
+				VoiceMessage voiceMessage = (VoiceMessage) message;
+				ms.add(voiceMessage);
+			}
+			else{
+				ms.add(message);
+			}
+			objOut.writeObject(ms);
+			objOut.flush();
+			objOut.close();
+			System.out.println("保存成功");
+			return true;
+		}
+		else{
+			for (int i = 0; i < tempList.length; i++) {
+				   if (tempList[i].isFile()) {
+					   list.add(tempList[i]);
+				   }
+			}
+			int num = 0;
+			ArrayList<Message> ms = new ArrayList<>();
+			for(int i=list.size()-1;i>=0;i--){
+				System.out.println("文件中聊天记录的数量："+fileSize(list.get(i).getPath()));
+				if(fileSize(list.get(i).getPath())<20){
+					ms = getFileMessages(list.get(i).getPath());
+					contentPath = list.get(i).getPath();
+					num = 1;
+					break;
+				}
+			}
+			File content = new File(contentPath);
+			content.createNewFile();
+			FileOutputStream out = new FileOutputStream(content);
+			ObjectOutputStream objOut = new ObjectOutputStream(out);
+			if(num==0){
+				if(message.getType()==VoiceMe){
+					VoiceMessage voiceMessage = (VoiceMessage) message;
+					ms.add(voiceMessage);
+				}
+				else{
+					ms.add(message);
+				}
+				objOut.writeObject(ms);
+				objOut.flush();
+				objOut.close();
+				System.out.println("保存成功");
+				return true;
+			}
+			else{
+				if(message.getType()==VoiceMe){
+					VoiceMessage voiceMessage = (VoiceMessage) message;
+					ms.add(voiceMessage);
+				}
+				else{
+					ms.add(message);
+				}
+				objOut.writeObject(ms);
+				objOut.flush();
+				objOut.close();
+				System.out.println("保存成功");
+				return true;
+			}
+		}
+	}
